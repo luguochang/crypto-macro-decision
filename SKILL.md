@@ -18,6 +18,7 @@ Load only what is needed. Keep `SKILL.md` lean; references are conditional.
 - `references/event-pool.md`: read active/current events before every live market decision; update breaking events.
 - `references/decision-pool.md`: read only active position and recent decisions unless reviewing history.
 - `references/factors-and-sop.md`: read for the macro/crypto checklist, consensus expectations, and decision scoring.
+- `references/indicator-sweep.md`: read for the concise pre-trade indicator sweep to avoid missing major signals.
 - `references/exchange-derivatives.md`: read for funding, OI, liquidation, order book, long/short crowding.
 - `references/data-sources.md`: read for APIs, source priority, and web-search query routes.
 - `references/templates.md`: read when appending event or decision records.
@@ -36,6 +37,7 @@ For context control, read active/current sections first. Do not load or restate 
    - Crypto prices: use exchange APIs, preferably OKX for BTC/ETH/SOL instruments.
    - Derivatives: funding, open interest, mark price, index price, candles, order book, and liquidation/long-short data when available.
    - Macro: VIX, U.S. yields, real yields, DXY, oil, FedWatch/OIS, CPI/PPI/PCE/NFP consensus and actuals, FOMC calendar.
+   - Indicator sweep: use `indicator-sweep.md`; summarize only abnormal or decision-changing signals.
    - Events: read `event-pool.md`, then run a fresh web-search sweep for breaking macro/geopolitical/crypto events. Search at least official/primary sources plus Reuters/AP-style news when facts are unstable.
 
 3. **Classify the market regime.**

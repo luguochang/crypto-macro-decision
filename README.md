@@ -62,6 +62,7 @@ crypto-macro-decision/
 │   ├── event-pool.md
 │   ├── exchange-derivatives.md
 │   ├── factors-and-sop.md
+│   ├── indicator-sweep.md
 │   └── templates.md
 └── scripts/
     ├── append_decision.py
@@ -78,6 +79,7 @@ crypto-macro-decision/
 | `references/event-pool.md` | 活跃事件池，用于跟踪未来事件和突发风险。 |
 | `references/decision-pool.md` | 决策池，用于记录仓位上下文和交易复盘。 |
 | `references/factors-and-sop.md` | 宏观、预期差、衍生品、情绪和品种强弱分析 SOP。 |
+| `references/indicator-sweep.md` | 每次交易前的精简指标扫描清单，避免遗漏核心信号。 |
 | `references/exchange-derivatives.md` | 合约市场检查清单：资金费率、OI、标记价、订单簿等。 |
 | `references/templates.md` | 事件记录、决策记录和实时回答模板。 |
 | `scripts/okx_snapshot.py` | 拉取 OKX 合约行情、资金费率、OI、标记价、K 线和订单簿。 |

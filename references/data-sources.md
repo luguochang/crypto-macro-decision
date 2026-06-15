@@ -26,6 +26,7 @@ Flows and derivatives:
 
 - Farside BTC ETF flows: `https://farside.co.uk/btc/`
 - CoinGlass: liquidation, long/short, options max pain.
+- Alternative.me Fear & Greed API: `https://api.alternative.me/fng/`
 - Deribit: options expiry policy and BTC/ETH options data.
 - DefiLlama: stablecoin supply, TVL, unlock references.
 - Tokenomist / TokenTrack / CoinMarketCal: token unlocks and events only for explicitly requested non-core tokens. Cross-check; do not trust one source.
@@ -103,6 +104,8 @@ Use for BTC/ETH/SOL futures decisions.
 - `BTC ETH SOL long short ratio CoinGlass today`
 - `Deribit BTC ETH options expiry max pain current week`
 - `stablecoin supply crypto market DefiLlama latest`
+- `crypto fear greed index API latest`
+- `BTC MVRV NUPL SOPR latest`
 
 Decision use:
 
