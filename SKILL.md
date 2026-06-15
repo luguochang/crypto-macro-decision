@@ -26,8 +26,6 @@ If the user mentions an existing local research log, read it too. If `/Users/cha
 
 For context control, read active/current sections first. Do not load or restate long historical archives unless the user asks for review or the current decision depends on a past analog. Recurring monthly events should be maintained as calendar rules and expanded only when they enter the active decision window.
 
-Chinese mirror files such as `*.zh-CN.md` are for user review. Do not load them during normal market decisions unless the user asks to inspect or edit the Chinese version.
-
 ## Non-Negotiable Workflow
 
 1. **Establish position and horizon.**

@@ -59,9 +59,7 @@ crypto-macro-decision/
 ├── references/
 │   ├── data-sources.md
 │   ├── decision-pool.md
-│   ├── decision-pool.zh-CN.md
 │   ├── event-pool.md
-│   ├── event-pool.zh-CN.md
 │   ├── exchange-derivatives.md
 │   ├── factors-and-sop.md
 │   └── templates.md
@@ -224,4 +222,3 @@ Useful contributions include:
 - More rigorous historical validation and backtesting.
 
 Before changing `SKILL.md`, keep it concise. Put detailed reference material under `references/` and deterministic utilities under `scripts/`.
-
