@@ -1,54 +1,490 @@
 # Crypto Macro Decision Skill
 
-一个面向 Codex 的加密货币宏观交易决策 skill，默认聚焦 BTC、ETH、SOL，通过实时行情、衍生品结构、宏观预期、突发事件和复盘记录，输出更可执行的合约交易判断。
+`crypto-macro-decision` 是一个面向 Codex 的加密货币宏观与合约决策 skill。它默认聚焦 `BTC`、`ETH`、`SOL` 三个主流资产，用实时行情、衍生品结构、宏观事件、资金流、市场情绪、事件池和决策池来辅助生成更可执行的合约操作方案。
 
-> Status: experimental research workflow. This project is not financial advice.
+这个 skill 的核心目标不是预测一个“绝对正确答案”，也不是自动交易，而是把交易前必须检查的事实、风险和决策规则固定下来，减少临场只看单一新闻、只看价格涨跌、或者被上一轮判断锚定的问题。
 
-## What It Does
+> 状态：实验性研究流程。本项目不是投资建议、交易建议或自动交易系统。
 
-这个 skill 不是普通行情评论模板，而是一套可迁移的交易决策流程。它会强制分析：
+## 适用范围
 
-- BTC / ETH / SOL 的实时价格、资金费率、未平仓合约、标记价、指数价和 K 线结构。
-- FOMC、CPI、PPI、PCE、非农、FedWatch 降息/加息预期等宏观因素。
-- 地缘冲突、油价、美元指数、美债收益率、VIX、纳指等跨市场风险偏好。
-- ETF 资金流、稳定币供应、期权交割、爆仓热力图、多空拥挤度。
-- 当前事件池和历史决策池，避免遗漏关键事件，也避免被旧判断锚定。
-
-最终目标是让 Codex 在用户询问加密货币合约操作时，不只给“可能上涨也可能下跌”的宽泛结论，而是输出一个主操作：
-
-- `hold long`
-- `close long`
-- `flip short`
-- `hold short`
-- `close short`
-- `switch product`
-- `no trade`
-
-每次交易建议都应包含主观概率、目标、止损/失效位、事件风险、改变判断的条件和下一次检查时间。
-
-## Why It Exists
-
-加密货币尤其是合约市场很容易被单一叙事误导。常见错误包括：
-
-- 只看新闻标题，不看市场是否已经提前定价。
-- 只看 CPI / PCE 数字，不看市场预期和实际值的差异。
-- 只看 BTC 价格，不看资金费率、OI、爆仓区和订单簿。
-- 只看某个币的利好，不看它相对 BTC / ETH / SOL 是否走弱。
-- 只记得上一次判断，后续不复盘，也不修正模型。
-
-这个 skill 的设计目标是把这些问题压进一个固定流程：先查事实，再看预期差，再判断市场反应，最后给出可验证的交易动作。
-
-## Default Asset Universe
-
-默认关注：
+默认分析对象：
 
 - `BTC-USDT-SWAP`
 - `ETH-USDT-SWAP`
 - `SOL-USDT-SWAP`
 
-非核心资产、meme、解锁币、股票映射合约、特殊事件产品默认不分析。只有用户明确点名时，才进入专项分析，避免噪音污染主判断。
+非核心资产、meme、解锁币、股票映射合约、特殊事件产品只在用户明确点名时进入分析。默认不主动分析 AVAX、SPCX、meme、股票映射币或其他小币，避免噪音污染 BTC/ETH/SOL 主线判断。
 
-## Repository Layout
+适合的问题类型：
+
+- 当前 BTC / ETH / SOL 合约应该做多、做空、持有、平仓还是等待触发。
+- 已经持有多单或空单时，判断继续持有、平仓、反手，还是设触发条件。
+- FOMC、CPI、PPI、PCE、非农、期权交割、地缘事件前后，如何处理合约风险。
+- 复盘上一条决策，记录 24h、72h、7d 结果，修正后续判断。
+- 维护事件池和决策池，避免漏掉未来事件或重复使用旧事实。
+
+不适合的问题类型：
+
+- 自动下单或托管交易。
+- 保证收益、保证胜率、无止损重仓。
+- 不刷新实时事实，只根据历史记录给当前交易结论。
+- 用单一技术指标或单一新闻直接判断多空。
+
+## 核心思想
+
+这个 skill 的分析顺序是：
+
+```text
+先确认事实
+再判断宏观与市场状态
+再检查衍生品和拥挤度
+再做主信号投票和评分
+再经过事件、EV/R、持仓规则裁判
+最后只能输出一个主操作
+```
+
+也就是说，结论不是先凭感觉说“看多/看空”，再找理由补上，而是从数据和事件逐层过滤。
+
+### 1. 事实层优先
+
+实时决策必须先刷新事实。历史事件池和历史决策池只能作为记忆，不是当前行情事实。
+
+必须优先刷新：
+
+- 当前 last / mark / index price。
+- BTC 1H / 4H 结构。
+- 订单簿深度、spread、买卖墙。
+- funding、下一次 funding 时间。
+- OI 当前值和 1h / 4h / 24h 变化。
+- long/short、taker flow、CVD。
+- liquidation heatmap。
+- basis / perp premium。
+- BTC / ETH options：IV、skew、max pain、expiry OI。
+- BTC / ETH ETF flows。
+- stablecoin supply 和可用时的交易所 stablecoin reserve / netflow。
+- VIX、DXY、美债收益率、实际收益率、油价、Nasdaq / QQQ。
+- FedWatch / OIS / SOFR implied path。
+- CPI、PPI、PCE、NFP、FOMC 等事件的 consensus、actual、market reaction。
+- 地缘、油价、监管、交易所、链上事故等突发新闻。
+
+如果关键事实缺失，不能把缺失当中性。必须写成 `unavailable` 或 `stale`，并降低主观概率上限。
+
+### 2. 技术和量化只是护栏
+
+技术指标不会替代事实层。EMA、VWAP、ATR、ADX、BB width、z-score、percentile、EV/R 等只用于确认执行质量、止损距离、波动状态和异常拥挤，不作为独立方向来源。
+
+例如：
+
+- BTC 结构、宏观桥、衍生品三者都偏空时，不能因为一个短周期 RSI 低就直接看多。
+- funding/OI/order book 缺失时，不能用均线金叉代替衍生品事实。
+- 方向偏空但当前价位离目标太近时，EV/R 可以阻止追空，转为 `trigger short`。
+
+### 3. BTC 是方向锚
+
+BTC 是默认方向锚。ETH 和 SOL 是高 beta 主流资产，只有在相对 BTC 有强度、并且衍生品不拥挤时，才优先交易 ETH 或 SOL。
+
+基本规则：
+
+- BTC 强且 funding 不拥挤，BTC 多单通常比弱 alt 多单更干净。
+- BTC 弱时，默认不做 ETH/SOL 多，除非 ETH/BTC、SOL/BTC 明显独立走强。
+- BTC 弱且 ETH/SOL 更弱时，做空要等待 BTC 结构确认，并检查空头是否已经过度拥挤。
+
+### 4. 新闻不是方向，预期差才是方向来源之一
+
+这个 skill 不把新闻标题直接当方向。任何宏观或地缘事件都要拆成：
+
+- 市场原本预期什么。
+- 实际发生什么。
+- 与预期相比是鹰派、鸽派、通胀、衰退、风险偏好改善，还是风险偏好恶化。
+- 美债收益率、DXY、VIX、油价、Nasdaq、BTC 是否确认这个方向。
+- 市场是否已经提前定价。
+
+例如，FOMC 不只是看“加息/降息/不变”，还要看 dot plot、Powell、通胀预测、失业率预测、FedWatch/OIS 变化，以及市场反应。
+
+### 5. 合约市场是半透明市场
+
+合约交易必须看衍生品结构，而不是只看现货价格。
+
+重点包括：
+
+- funding 是否极端。
+- OI 是新杠杆进入、空头回补、多头被困，还是去杠杆。
+- long/short 是否单边。
+- liquidation cluster 在价格上方还是下方。
+- order book 是否薄，是否有明显买卖墙。
+- mark price 和 last price 是否偏离。
+- taker buy/sell、CVD 是否确认主动买盘或主动卖盘。
+- basis / perp premium 是现货驱动还是杠杆追涨。
+
+如果这些数据缺失，skill 会降低置信度，或者把直接开仓降级成 `trigger long` / `trigger short` / `no trade`。
+
+## 主操作枚举
+
+实时交易回答必须只输出一个主操作。`Main action` 必须严格等于以下之一：
+
+```text
+open long
+open short
+hold long
+hold short
+close long
+close short
+flip long to short
+flip short to long
+trigger long
+trigger short
+no trade
+```
+
+禁止把多个动作写在一个主操作里。例如：
+
+- 不写 `open / hold ETH long`。
+- 不写 `close existing longs / stay flat`。
+- 不写 `take profit now / rebound short`。
+- 不写 `switch product`。
+- 不写 `reduce exposure`。
+
+如果需要切换品种，主动作仍然只能是一个。比如用户持有 BTC 多单，但 ETH 空头机会更好，当前仓位的主动作应写 `close long`，ETH 空头只能写成另一个触发思路，不能混进同一个 `Main action`。
+
+## `trigger long / trigger short` 是什么
+
+`trigger long` 或 `trigger short` 表示现在不市价进场，只有在价格或事件触发后才执行或复查。
+
+它有两种类型：
+
+- `orderable`：止损、T1/T2、RR 都有效，可以设置条件单。
+- `recheck-only`：需要触发后重新刷新事实，不能直接挂单。
+
+举例：
+
+```text
+Main action: trigger short
+Entry trigger: ETH 反弹到 1728-1738 后失败
+Trigger type: recheck-only
+Stop price: 1762
+T1: 1680
+T2: 1655
+```
+
+这不是“判断它一定会先涨”，而是“方向偏空，但当前价格追空 EV/R 不好，所以等更好的空头入场条件”。如果价格直接下跌到目标区，不追空；如果反弹站稳失效位，空头方案取消。
+
+## 决策裁判层
+
+这个 skill 的裁判层负责把复杂信息压成一个主动作。
+
+### 主信号投票
+
+三个主方向信号：
+
+1. BTC structure and momentum。
+2. Macro bridge：rates、DXY、VIX、oil、Nasdaq / QQQ、cross-asset。
+3. Derivatives confirmation：funding、OI、long/short、liquidation、basis、taker flow。
+
+规则：
+
+- 三个都偏多，不能普通 `no trade`，除非硬阻断。
+- 三个都偏空，不能普通 `no trade`，除非硬阻断。
+- 2 个同向、1 个中性或缺失，跟随同向一侧，但降低置信度，优先 trigger 或小仓。
+- 三个混乱，才允许 `no trade`，但要写清楚多空触发条件。
+
+### 加权评分
+
+评分只是辅助，不是替代事实门。
+
+| 因子 | 分值范围 |
+|---|---:|
+| BTC structure and momentum | -4 to +4 |
+| Macro bridge | -4 to +4 |
+| Derivatives | -4 to +4 |
+| Spot / ETF / stablecoin flows | -2 to +2 |
+| Asset relative strength | -2 to +2 |
+| Inflation / growth surprise | -2 to +2 |
+| Technical confirmation / execution quality | -2 to +2 |
+| Event risk / time compression | -3 to 0 |
+| Priced-in adjustment | -3 to +1 |
+| Crowding adjustment | -3 to +1 |
+| Auxiliary sentiment / on-chain / options | -1 to +1 |
+
+大致动作梯度：
+
+- `>= +8`：偏 `open long` / `hold long`。
+- `+4 to +7`：默认 `trigger long`。
+- `-3 to +3`：新仓默认 `no trade`，已有仓位走持仓规则。
+- `-4 to -7`：默认 `trigger short`。
+- `<= -8`：偏 `open short` / `hold short` / `close long` / `flip long to short`。
+
+### EV/R 执行门
+
+方向对，不代表当前价位能交易。
+
+新开仓通常要求：
+
+- T1 RR >= 1.2。
+- T2 RR >= 1.8。
+- 或者是明确解释过的事件反应短线。
+
+如果方向强但 RR 差，输出 `trigger long` 或 `trigger short`，等更好的价格，而不是追单。
+
+已有仓位也要看 forward EV/R：
+
+- `hold long` / `hold short` 需要剩余目标相对失效位仍有正向 EV/R。
+- `close long` / `close short` 需要说明 thesis 失效、forward EV/R 变差、硬阻断、事件边界或目标已完成。
+- `flip long to short` / `flip short to long` 必须同时满足原方向平仓条件和反向入场条件。
+
+### 事件压缩
+
+重大事件包括 FOMC、CPI、PPI、PCE、NFP、Powell、期权月度/季度交割、地缘突发、稳定币/交易所/链上重大事故。
+
+事件窗口规则：
+
+- 24-48h 内：降低置信度，缩短复查时间。
+- 6-24h 内：优先 trigger 或持有到附近目标，减少新市价开仓。
+- 6h 内：通常不新开市价仓，除非事件已经重新定价。
+- 事件后：只交易 actual vs consensus 和市场反应，不交易标题本身。
+
+### 硬阻断和软降级
+
+硬阻断示例：
+
+- 当前 last / mark / index 缺失。
+- funding / OI 缺失。
+- active event status 缺失。
+- 主要催化剂只有社交媒体传闻。
+- EV/R 为负。
+- 稳定币脱锚、交易所提现异常、重大安全事故未确认。
+
+软降级示例：
+
+- liquidation / CVD / long-short 缺失，但价格、宏观和 exchange-native derivatives 同向。
+- ETF / stablecoin 数据缺失，但没有把它作为支持理由。
+- options 数据缺失且不在重大 expiry 窗口。
+- 事件 6-24h 内，但 trigger 和 invalidation 明确。
+
+## 输出模板
+
+实时交易回答使用 `references/templates.md#Live Answer Template`。核心字段包括：
+
+```text
+Main action: <exact enum only>
+Action validity check:
+Instrument:
+Horizon:
+Last / mark / index price + timestamp/source/freshness:
+1H / 4H candle timestamp:
+Order book timestamp/depth:
+Funding / OI timestamp:
+Data quality:
+Unavailable / stale data:
+Derivatives confirmation:
+Cross-exchange conflicts:
+Primary signal vote:
+Decision ladder result:
+No-trade / trigger boundary:
+Event compression matrix:
+Existing-position rule:
+Hard blocks:
+Soft downgrades:
+EV / RR gate:
+Scorecard:
+Subjective probability:
+Confidence cap reason:
+Entry trigger:
+Trigger type:
+Stop price:
+Targets:
+Risk/reward:
+Position size class:
+Invalidation event/price:
+Do-not-hold-through event:
+Why this is the highest-probability path:
+Why not the opposite:
+Sources used:
+Decision-pool update:
+What would change the decision:
+Next review time:
+```
+
+最终回答不能以“多空都有机会”“谨慎关注关键位”这类平衡废话结尾。必须以 `What would change the decision` 和 `Next review time` 收束。
+
+## 事件池和决策池
+
+### Event Pool
+
+`references/event-pool.md` 是事件池。它维护：
+
+- 未来 72h 内的 active decision window。
+- 已发生但市场反应仍未结束的 active market reactions。
+- CPI / PPI / PCE / NFP / FOMC / 期权交割等循环事件。
+- 地缘、油价、交易所、监管、稳定币、链上事故等突发事件。
+
+事件池规则：
+
+- 过期事件不能继续标 `upcoming`。
+- active / upcoming / breaking 事件必须有 expires、next recheck 或 resolution condition。
+- 历史事件只能作为复盘记忆，不能作为当前事实。
+
+### Decision Pool
+
+`references/decision-pool.md` 是决策池。它维护：
+
+- 当前仓位状态。
+- 当前 thesis 和 invalidation。
+- 最新 1-3 条关键决策。
+- 历史复盘记录。
+
+实时决策只读：
+
+- `Current Decision State`。
+- `Active Position Context`。
+- 最新 1-3 条决策。
+
+旧价格、旧止损、旧概率、旧 ETF flows、旧 FedWatch、旧 VIX / DXY / yields 都不能当作当前事实。
+
+历史条目里可能保留早期非规范写法，例如 `open/hold`、`switch`、`stay flat`。这些只作为复盘材料，不能复制到新的 `Main action`。
+
+## 数据源路线
+
+### 交易所和加密市场
+
+默认优先级：
+
+1. OKX public API：BTC/ETH/SOL swap 的 ticker、mark、index、funding、OI、candles、books。
+2. Binance USD-M futures：ticker、premium index、funding、OI、klines、depth、global long/short、taker buy/sell。
+3. Bybit V5 public market。
+4. Deribit：BTC/ETH options。
+5. CoinGlass / Coinalyze / Velo / Laevitas：all-market funding、OI、long-short、liquidation、options。
+6. Coinbase / Kraken / CoinGecko / CoinMarketCap：只能做 spot sanity check，不能替代合约 mark/index。
+
+如果聚合衍生品源不可用，exchange-native funding/OI 只是局部证据，不能标记为强衍生品确认。
+
+### 资金流和情绪
+
+- Farside BTC ETF flows。
+- Farside ETH ETF flows。
+- issuer official daily files。
+- DefiLlama stablecoin supply。
+- CryptoQuant / Glassnode / Nansen-like exchange reserves and netflow。
+- Alternative.me Fear & Greed。
+- MVRV、NUPL、SOPR 等周期/链上指标。
+
+链上和周期指标用于中周期背景，不用于 15m / 1h 直接开仓理由。
+
+### 宏观和新闻
+
+- Federal Reserve FOMC calendar。
+- Federal Reserve H.15 rates。
+- BLS CPI / PPI / Employment Situation。
+- BEA PCE。
+- U.S. Treasury rates。
+- FRED 10Y real yield。
+- Cboe VIX。
+- CME FedWatch。
+- DXY、WTI、Brent、QQQ、NQ、ES、MOVE / credit proxies。
+- Reuters、AP、Bloomberg、CNBC。
+- OKX / Binance / Bybit / Deribit status pages。
+- Solana status、Ethereum blog、Tether / USDC issuer announcements、SEC / CFTC releases。
+
+地缘和油价事件至少用两个可靠来源确认。只有社交媒体的消息只能当风险，不能当事实。
+
+## 脚本
+
+### OKX 快照
+
+```bash
+python3 scripts/okx_snapshot.py
+```
+
+默认抓取：
+
+- last price。
+- mark price。
+- index price。
+- funding。
+- OI。
+- 1H / 4H candles。
+- order book。
+
+可选跳过：
+
+```bash
+python3 scripts/okx_snapshot.py --no-candles
+python3 scripts/okx_snapshot.py --no-books
+```
+
+注意：脚本无法独立提供 all-market liquidation、long/short、CVD、basis 和 OI change，需要外部源补充。如果 API 失败，脚本会输出 error，后续决策必须把对应数据标成 unavailable。
+
+### 追加决策
+
+```bash
+python3 scripts/append_decision.py --title "Title" --body "..."
+```
+
+该脚本会校验：
+
+- `Main action` 必须精确匹配主操作枚举。
+- 必须包含 `EV / RR gate`。
+- 必须包含 `Subjective probability`。
+- 必须包含 `Why not the opposite`。
+- 必须包含 `Next review time`。
+
+如果要导入旧记录，可以使用：
+
+```bash
+python3 scripts/append_decision.py --no-validate ...
+```
+
+### 追加事件
+
+```bash
+python3 scripts/append_event.py --title "Title" --status active --next-recheck "YYYY-MM-DD HH:mm TZ" --body "..."
+```
+
+active / upcoming / breaking / released / active market reaction 类事件必须带 `--expires-at` 或 `--next-recheck`，避免事件池残留过期风险。
+
+## 安装和验证
+
+安装到 Codex skills 目录：
+
+```bash
+mkdir -p ~/.codex/skills
+git clone https://github.com/luguochang/crypto-macro-decision.git ~/.codex/skills/crypto-macro-decision
+```
+
+验证 skill 结构：
+
+```bash
+python3 ~/.codex/skills/.system/skill-creator/scripts/quick_validate.py ~/.codex/skills/crypto-macro-decision
+```
+
+## 示例问题
+
+```text
+根据当前 BTC/ETH/SOL 实时价格、宏观事件和衍生品结构，给我一个本周合约胜率最高的主操作。
+```
+
+```text
+我现在持有 BTC 多单，帮我重新检索事件池和最新宏观，判断继续持有、平仓还是反手。
+```
+
+```text
+FOMC 前后 BTC 合约怎么处理？看一下 FedWatch、油价、VIX、美债收益率和资金费率。
+```
+
+```text
+复盘上一条决策，记录 24h / 72h / 7d 结果，并更新决策池。
+```
+
+## 当前限制
+
+- 本项目不是自动交易系统，不会下单。
+- 主观概率除非特别说明，否则不是回测概率。
+- 交易所 API、聚合器、新闻和宏观数据可能失败、延迟或互相冲突。
+- 当 mark/index/funding/OI/order book 缺失时，skill 会降低置信度，不应强行输出高置信市价开仓。
+- 事件池和决策池需要维护；旧记录不能代替当前实时事实。
+- README 只是说明文档；实际执行规则以 `SKILL.md` 和 `references/` 为准。
+
+## 文件结构
 
 ```text
 crypto-macro-decision/
@@ -70,157 +506,10 @@ crypto-macro-decision/
     └── okx_snapshot.py
 ```
 
-## Key Files
+## 风险说明
 
-| File | Purpose |
-|---|---|
-| `SKILL.md` | Codex skill 入口，定义触发条件、核心流程和输出格式。 |
-| `references/data-sources.md` | 数据源、API、Web Search 路线和来源优先级。 |
-| `references/event-pool.md` | 活跃事件池，用于跟踪未来事件和突发风险。 |
-| `references/decision-pool.md` | 决策池，用于记录仓位上下文和交易复盘。 |
-| `references/factors-and-sop.md` | 宏观、预期差、衍生品、情绪和品种强弱分析 SOP。 |
-| `references/indicator-sweep.md` | 每次交易前的精简指标扫描清单，避免遗漏核心信号。 |
-| `references/exchange-derivatives.md` | 合约市场检查清单：资金费率、OI、标记价、订单簿等。 |
-| `references/templates.md` | 事件记录、决策记录和实时回答模板。 |
-| `scripts/okx_snapshot.py` | 拉取 OKX 合约行情、资金费率、OI、标记价、K 线和订单簿。 |
-| `scripts/append_event.py` | 向事件池追加结构化事件记录。 |
-| `scripts/append_decision.py` | 向决策池追加结构化交易决策。 |
+本仓库只用于研究、流程设计和决策记录，不提供金融、投资、法律、税务或交易建议。
 
-## Installation
+加密货币合约属于高风险产品。即使中期方向判断正确，杠杆也可能因为短线波动导致快速爆仓。除非明确说明有经过验证的回测样本，本 skill 中的概率都只是基于事实层和规则层得出的主观概率。
 
-把仓库放到 Codex skills 目录下：
-
-```bash
-mkdir -p ~/.codex/skills
-git clone <your-repo-url> ~/.codex/skills/crypto-macro-decision
-```
-
-如果你已经在本地维护这个目录，可以直接把仓库内容同步到：
-
-```text
-~/.codex/skills/crypto-macro-decision
-```
-
-## Requirements
-
-- Codex skill runtime.
-- Python 3.
-- Network access for exchange APIs and live web search.
-- No OKX API key is required for the bundled public-market snapshot script.
-
-## Quick Start
-
-验证 skill 结构：
-
-```bash
-python3 ~/.codex/skills/.system/skill-creator/scripts/quick_validate.py ~/.codex/skills/crypto-macro-decision
-```
-
-抓取默认 BTC / ETH / SOL 的 OKX 合约快照：
-
-```bash
-python3 ~/.codex/skills/crypto-macro-decision/scripts/okx_snapshot.py
-```
-
-包含 1H / 4H K 线：
-
-```bash
-python3 ~/.codex/skills/crypto-macro-decision/scripts/okx_snapshot.py --candles
-```
-
-包含订单簿：
-
-```bash
-python3 ~/.codex/skills/crypto-macro-decision/scripts/okx_snapshot.py --books
-```
-
-指定其他交易对：
-
-```bash
-python3 ~/.codex/skills/crypto-macro-decision/scripts/okx_snapshot.py BTC-USDT-SWAP ETH-USDT-SWAP
-```
-
-## Example Prompts
-
-可以在 Codex 中这样问：
-
-```text
-根据当前 BTC/ETH/SOL 实时价格、宏观事件和衍生品结构，给我一个本周合约胜率最高的主操作。
-```
-
-```text
-我现在持有 BTC 多单，帮我重新检索事件池和最新宏观，判断继续持有、平仓还是反手。
-```
-
-```text
-FOMC 前后 BTC 合约怎么处理？看一下 FedWatch、油价、VIX、美债收益率和资金费率。
-```
-
-```text
-复盘上一条决策，记录 24h / 72h 结果，并更新决策池。
-```
-
-## Decision Output Format
-
-实时交易回答应尽量遵循：
-
-```text
-Main action:
-Instrument:
-Side:
-Current price/time/source:
-Subjective probability:
-Targets:
-Stop / invalidation:
-Do-not-hold-through event:
-Why this is the highest-probability path:
-What would change the decision:
-Next check time:
-Sources used:
-Decision-pool update:
-```
-
-## Live Search Policy
-
-任何实时市场判断都不能只依赖历史记忆。必须刷新：
-
-- 交易所实时数据：OKX 或用户实际交易所。
-- 宏观预期：CME FedWatch、FOMC、CPI、PPI、PCE、NFP consensus。
-- 跨市场风险：VIX、DXY、美债收益率、实际利率、WTI / Brent、Nasdaq。
-- 突发事件：Reuters、AP、Bloomberg、CNBC 等可靠来源。
-- 加密结构：ETF flows、funding、OI、long/short ratio、liquidation heatmap、options expiry。
-
-地缘和油价类事件至少需要两个可靠来源确认。未确认新闻只能作为低置信度风险，不能当作已落地事实。
-
-## Event Pool And Decision Pool
-
-事件池和决策池是这个 skill 的核心，但它们不能无限膨胀到影响判断。
-
-维护规则：
-
-- 每次交易决策只读活跃事件和当前仓位上下文。
-- CPI、PPI、PCE、非农、FOMC、期权交割这类重复事件写成规则，临近窗口再展开。
-- 已过期事件移动到历史区，只保留可复盘结论。
-- 决策池保留当前仓位和最近关键决策，更早记录应归档。
-- 每次交易建议后补充 24h、72h、7d 复盘。
-
-## Risk Disclaimer
-
-This repository is for research, workflow design, and decision logging only. It does not provide financial, investment, legal, tax, or trading advice.
-
-Crypto futures are high-risk products. Leverage can cause rapid liquidation even when the medium-term direction is correct. Any probability in this skill is subjective unless explicitly backed by a validated backtest.
-
-Users are responsible for their own trading decisions, position sizing, leverage, risk control, and compliance with local laws.
-
-## Contributing
-
-Useful contributions include:
-
-- Better public data-source integrations.
-- More robust macro consensus collection.
-- ETF flow, VIX, yields, DXY, oil and FedWatch helper scripts.
-- Decision-pool review tooling.
-- Cleaner event-pool archival workflow.
-- More rigorous historical validation and backtesting.
-
-Before changing `SKILL.md`, keep it concise. Put detailed reference material under `references/` and deterministic utilities under `scripts/`.
+用户需要自行负责交易决策、仓位大小、杠杆倍数、风险控制，以及遵守所在地法律法规。

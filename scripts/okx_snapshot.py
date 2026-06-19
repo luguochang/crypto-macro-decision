@@ -41,14 +41,24 @@ def safe(path):
         return {"error": str(e), "path": path}
 
 
+def index_id(inst):
+    if inst.endswith("-SWAP"):
+        return inst[:-5]
+    return inst
+
+
 def main():
     p = argparse.ArgumentParser(description="Fetch OKX crypto futures snapshot.")
     p.add_argument("instruments", nargs="*", default=["BTC-USDT-SWAP", "ETH-USDT-SWAP", "SOL-USDT-SWAP"])
-    p.add_argument("--candles", action="store_true", help="Include 1H and 4H candles.")
-    p.add_argument("--books", action="store_true", help="Include top order book.")
+    p.add_argument("--no-candles", action="store_true", help="Skip 1H and 4H candles.")
+    p.add_argument("--no-books", action="store_true", help="Skip top order book.")
     args = p.parse_args()
 
-    out = {"fetched_at_utc": datetime.now(timezone.utc).isoformat(), "instruments": {}}
+    out = {
+        "fetched_at_utc": datetime.now(timezone.utc).isoformat(),
+        "data_quality_note": "Default snapshot includes last/mark/index, funding, OI, 1H/4H candles, and order book. OI change, liquidation, long/short, taker/CVD, and basis require external sources unless separately fetched.",
+        "instruments": {},
+    }
 
     for inst in args.instruments:
         item = {}
@@ -56,9 +66,11 @@ def main():
         item["funding"] = safe(f"/api/v5/public/funding-rate?instId={inst}")
         item["open_interest"] = safe(f"/api/v5/public/open-interest?instId={inst}")
         item["mark_price"] = safe(f"/api/v5/public/mark-price?instType=SWAP&instId={inst}")
-        if args.books:
+        item["index_ticker"] = safe(f"/api/v5/market/index-tickers?instId={index_id(inst)}")
+        item["open_interest_change_note"] = "current OI only; use historical snapshots or aggregator data for 1h/4h/24h OI change"
+        if not args.no_books:
             item["books"] = safe(f"/api/v5/market/books?instId={inst}&sz=10")
-        if args.candles:
+        if not args.no_candles:
             item["candles_1h"] = safe(f"/api/v5/market/candles?instId={inst}&bar=1H&limit=48")
             item["candles_4h"] = safe(f"/api/v5/market/candles?instId={inst}&bar=4H&limit=30")
         out["instruments"][inst] = item

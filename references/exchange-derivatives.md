@@ -4,6 +4,27 @@ Use this reference whenever the user trades futures/contracts or asks about long
 
 ## Core Data
 
+Minimum tradable data pack for any leveraged call:
+
+- Current last, mark, and index price with timestamp.
+- BTC 1H/4H structure, even when trading ETH/SOL.
+- Current order book depth/spread for market entries, high leverage, thin liquidity, or any instrument outside BTC/ETH/SOL.
+- Funding rate and next funding time.
+- OI and recent OI change.
+- Macro bridge: DXY/yields/VIX/oil or explicit unavailable.
+- At least one crowding source beyond a raw exchange ticker when making a leveraged directional call.
+- Event calendar check for the next 24-48h.
+- If trading ETH/SOL: ETH/BTC, SOL/BTC, and SOL/ETH relative strength.
+
+If 2+ items in the minimum pack are unavailable or stale, default to `no trade`, `trigger long`, or `trigger short`; do not assign 60%+ directional confidence.
+
+Single-item hard caps:
+
+- If last/mark/index is unavailable or stale, cap below 60% even if other facts align.
+- If funding/OI is unavailable or stale, cap below 60% for leveraged directional calls.
+- If active event status is unavailable during a 24-48h macro/geopolitical window, cap below 55%.
+- If order book is unavailable for market entry or high leverage, do not recommend fresh market entry; use a trigger or require recheck.
+
 For each traded instrument, collect:
 
 - Last price.
@@ -11,10 +32,16 @@ For each traded instrument, collect:
 - Index price.
 - 24h high/low.
 - Funding rate and next funding time.
-- Open interest in coin and USD.
+- Funding annualized estimate and 7d/30d percentile when available.
+- Open interest in coin and USD/notional.
+- OI 1h/4h/24h change.
+- OI/volume or OI/market cap when available.
 - 1H and 4H candles.
-- Order book depth near price.
-- Long/short ratio and liquidation heatmap if available from external sources.
+- Order book depth near price, spread, 1%/2% imbalance, and obvious buy/sell walls.
+- Long/short ratio, taker buy/sell, CVD, and liquidation heatmap if available from external sources.
+- Perp basis / premium vs spot, dated futures basis, and CME gap/OI when relevant.
+- Spot volume vs perp volume, realized volatility, ATR/range expansion, and spot-perp divergence.
+- Options max pain, put/call OI, ATM IV, 25-delta skew, and gamma zones near major expiry when available.
 
 ## Interpretation Rules
 
@@ -31,6 +58,23 @@ For each traded instrument, collect:
 - Price up + OI down: short covering; less reliable continuation.
 - Price down + OI up: new shorts or trapped longs; watch liquidation.
 - Price down + OI down: deleveraging; may stabilize after flush.
+- Use OI change windows. A 24h OI rise can hide a 1h unwind; do not mix horizons.
+- Normalize OI units before comparing venues. Coin count, contract count, and USD notional are not interchangeable.
+
+### Basis / Premium
+
+- Perp premium rising with price and OI = leverage chase; check crowding before longing.
+- Perp premium flat/negative while spot pushes price higher = healthier rally.
+- Dated futures basis rising too fast can indicate crowded carry/leverage.
+- Basis compression during a selloff can mean deleveraging is already happening.
+- If basis/perp premium is unavailable, do not use spot-led vs leverage-led quality as a support reason; mark basis unavailable and apply the appropriate confidence cap when it matters to the thesis.
+
+### Taker Delta / CVD
+
+- Price up + positive taker delta + spot volume confirms demand.
+- Price up + weak/negative CVD may be short covering or thin-book squeeze.
+- Price down + negative taker delta + OI rising confirms aggressive selling.
+- Divergence between CVD and price warns of absorption or spoof-prone conditions.
 
 ### Mark vs Last
 
@@ -53,6 +97,19 @@ Mitigation:
 - Prefer structural invalidation zones over arbitrary tiny stops.
 - Do not hold high leverage through major macro events unless explicitly intended.
 
+### Liquidation Windows
+
+- Use the window that matches the trade horizon: 1h/4h for intraday, 24h/7d for swing context.
+- A dense liquidation cluster above price can create squeeze risk for shorts.
+- A dense cluster below price can create flush risk for longs.
+- Do not put invalidation exactly inside the largest obvious cluster if a structural alternative exists.
+
+### Volume And Volatility
+
+- Breakouts with spot volume confirmation have higher quality than perp-only breakouts.
+- Low realized volatility before a major event means a tighter stop may be mechanically swept.
+- ATR/range expansion after a data release can require wider invalidation or no trade.
+
 ## Product-Specific Notes
 
 ### BTC
@@ -71,7 +128,7 @@ SOL is a high-beta major. Prefer SOL long only when SOL/BTC and SOL/ETH show rel
 
 Analyze token unlocks, special product rules, premium/discount, or chain-specific events only when the user explicitly asks.
 
-## Minimal OKX API Targets
+## Primary OKX API Targets
 
 - Ticker: `https://www.okx.com/api/v5/market/ticker?instId=BTC-USDT-SWAP`
 - Funding: `https://www.okx.com/api/v5/public/funding-rate?instId=BTC-USDT-SWAP`
@@ -79,3 +136,15 @@ Analyze token unlocks, special product rules, premium/discount, or chain-specifi
 - Candles: `https://www.okx.com/api/v5/market/candles?instId=BTC-USDT-SWAP&bar=1H&limit=48`
 - Books: `https://www.okx.com/api/v5/market/books?instId=BTC-USDT-SWAP&sz=10`
 - Mark: `https://www.okx.com/api/v5/public/mark-price?instType=SWAP&instId=BTC-USDT-SWAP`
+
+## Fallback API Targets
+
+Use these if OKX fails, rate-limits, returns stale timestamps, or conflicts with another source:
+
+- Binance USD-M futures: ticker/book ticker, premium index, funding history, open interest, klines, depth, global long/short ratio, taker buy/sell volume.
+- Bybit V5 market: tickers, funding history, open interest, kline, orderbook.
+- Deribit public API: BTC/ETH options order book, book summary, IV/skew/open interest context.
+- CoinGlass / Coinalyze / Velo / Laevitas: all-market funding, OI, long/short, liquidation heatmap, options, and exchange comparison.
+- Coinbase/Kraken/CoinGecko/CoinMarketCap: spot price sanity checks only; do not use them as substitutes for derivatives data.
+
+Mark each fallback result with source, timestamp, and whether it is exchange-native, aggregator, webpage-derived, or search-derived.

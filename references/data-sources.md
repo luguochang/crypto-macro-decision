@@ -2,6 +2,19 @@
 
 Use primary or near-primary sources where possible. For unstable market facts, always refresh by web search or API.
 
+Only load this file for live trade calls, unstable data, or source disputes. For normal explanations, use the lighter factor checklist.
+
+## Freshness Requirements
+
+- Price/ticker/order book: ideally under 1-2 minutes old.
+- Funding/OI: under 5-15 minutes if exchange data updates at that frequency; otherwise mark the native update interval.
+- Candles: latest candle must align with the current 1H/4H period.
+- Liquidation, long/short, taker flow, CVD: under 15-30 minutes for intraday use; older data is background only.
+- ETF flows: mark `T+0 preliminary`, `T+1 final`, or `stale`.
+- Macro market data such as VIX/yields/DXY/oil/QQQ: under 15 minutes during event windows when possible.
+- Official macro actuals: include release timestamp.
+- Breaking news: include publication time and confirmation status.
+
 ## Exchange And Crypto
 
 OKX public APIs:
@@ -14,6 +27,12 @@ OKX public APIs:
 - Index ticker: `https://www.okx.com/api/v5/market/index-tickers?instId={INDEX_ID}`
 - Books: `https://www.okx.com/api/v5/market/books?instId={INST_ID}&sz=10`
 
+Index ID examples:
+
+- `BTC-USDT-SWAP` -> `BTC-USDT`
+- `ETH-USDT-SWAP` -> `ETH-USDT`
+- `SOL-USDT-SWAP` -> `SOL-USDT`
+
 Common instruments:
 
 - `BTC-USDT-SWAP`
@@ -22,14 +41,37 @@ Common instruments:
 
 Only pull non-core instruments when the user explicitly asks for them.
 
+Fallback exchange/API ladder:
+
+- Primary: OKX public API for default BTC/ETH/SOL swaps.
+- Fallback 1: Binance USD-M futures public API for ticker, premium index, funding history, open interest, klines, depth, global long/short ratio, and taker buy/sell volume.
+- Fallback 2: Bybit V5 public market API for tickers, funding history, open interest, kline, and orderbook.
+- Fallback 3: Deribit public API for BTC/ETH options book, IV/skew, and options open interest context.
+- Fallback 4: CoinGlass / Coinalyze / Velo / Laevitas for all-market funding, OI, long/short, liquidation heatmaps, and options. If no API access, use webpage/search-derived values and mark them as delayed.
+- Spot sanity check only: Coinbase, Kraken, CoinGecko, CoinMarketCap. These do not replace derivatives data.
+
+If CoinGlass, Coinalyze, Velo, or Laevitas are inaccessible, exchange-native funding/OI is local evidence only. Do not label derivatives confirmation as strong unless at least one non-exchange crowding, liquidation, long/short, taker-flow, or basis source is fresh.
+
 Flows and derivatives:
 
 - Farside BTC ETF flows: `https://farside.co.uk/btc/`
+- Farside ETH ETF flows when ETH is traded or cited: `https://farside.co.uk/eth/`
+- Issuer official daily files or fund pages when Farside is stale; mark preliminary/final/stale.
 - CoinGlass: liquidation, long/short, options max pain.
 - Alternative.me Fear & Greed API: `https://api.alternative.me/fng/`
 - Deribit: options expiry policy and BTC/ETH options data.
-- DefiLlama: stablecoin supply, TVL, unlock references.
+- DefiLlama: stablecoin total supply, TVL, unlock references.
+- CryptoQuant / Glassnode / Nansen-like sources when available: exchange stablecoin reserves, exchange stablecoin netflow, exchange BTC/ETH inflow/outflow. If unavailable, mark `exchange dry powder unavailable`; do not use total stablecoin supply as a short-term exchange-buying proxy.
 - Tokenomist / TokenTrack / CoinMarketCal: token unlocks and events only for explicitly requested non-core tokens. Cross-check; do not trust one source.
+
+Data-quality checks:
+
+- API timestamps must be close to current time; otherwise mark `stale`.
+- Mark/index/last deviations require a second source.
+- OI units must be normalized to USD/notional before cross-venue comparison.
+- Funding periods must be normalized before comparing venues.
+- Candle timestamps must be aligned to UTC/exchange timezone and macro release time.
+- HTTP errors, rate limits, empty arrays, missing fields, and contradictory sources are not neutral; record them under unavailable/stale data and apply confidence caps.
 
 ## Macro
 
@@ -48,14 +90,16 @@ Market:
 
 - Cboe VIX: `https://cdn.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv`
 - CME FedWatch: `https://www.cmegroup.com/markets/interest-rates/cme-fedwatch-tool.html`
-- DXY, WTI, Brent, Nasdaq/QQQ: use reputable market data.
+- DXY, WTI, Brent, Nasdaq/QQQ, NQ/ES futures, MOVE/credit proxies: use CME/Nasdaq/Yahoo Finance/MarketWatch/Stooq/TradingView-style market data and label delayed vs live.
 - MacroMicro / Investing / Trading Economics / Econoday: consensus expectations when official sources provide release schedules but not market consensus. Cross-check if possible.
+- OIS/SOFR futures: use CME/SOFR futures or professional-rate data when available. If unavailable, CME FedWatch is only a retail-implied proxy and must be labeled as such.
 
 News:
 
 - Reuters, AP, Bloomberg, CNBC for breaking geopolitical and macro news.
 - For geopolitics, use at least two independent reputable sources before treating a claim as confirmed.
 - Use recency and timestamps. News about war, oil, sanctions, central banks, and IPOs changes quickly.
+- Crypto-native primary routes: OKX/Binance/Bybit status pages, Deribit status, Solana status, Ethereum blog, Bitcoin Core/project release notes when relevant, Tether/USDC issuer announcements, SEC/CFTC press releases, ETF issuer notices, and major security/exploit disclosures.
 
 ## Mandatory Live Search Sweep
 
@@ -65,11 +109,11 @@ For any live trade call, run a targeted sweep instead of relying on one search r
 
 Use when there is war, ceasefire, sanctions, Strait of Hormuz, Israel/Iran, U.S./Iran, Russia/Ukraine, Red Sea, or oil-shipping risk.
 
-- `Reuters Iran ceasefire agreement Strait of Hormuz oil today`
-- `AP Iran ceasefire agreement oil markets today`
-- `Bloomberg Iran ceasefire oil Strait Hormuz markets today`
-- `CNBC oil prices Iran ceasefire risk assets today`
-- `WTI Brent crude today Iran ceasefire`
+- `Reuters {geopolitical_event} oil risk assets today`
+- `AP {geopolitical_event} oil markets today`
+- `Bloomberg {geopolitical_event} oil rates markets today`
+- `CNBC oil prices {geopolitical_event} risk assets today`
+- `WTI Brent crude today {geopolitical_event}`
 
 Decision use:
 
@@ -82,11 +126,11 @@ Decision use:
 Use before CPI/PPI/PCE/NFP/FOMC or when yields move sharply.
 
 - `CME FedWatch rate cut probability today`
-- `June 2026 FOMC dot plot Powell preview consensus`
-- `US CPI consensus forecast next release core CPI`
-- `US PPI consensus forecast next release`
-- `US PCE consensus forecast next release core PCE`
-- `US nonfarm payrolls consensus forecast next release unemployment wage growth`
+- `{current_or_next_fomc_month_year} FOMC dot plot Powell preview consensus`
+- `US CPI consensus forecast {next_release_date_or_month} core CPI`
+- `US PPI consensus forecast {next_release_date_or_month}`
+- `US PCE consensus forecast {next_release_date_or_month} core PCE`
+- `US nonfarm payrolls consensus forecast {next_release_date_or_month} unemployment wage growth`
 - `Treasury yield 2 year 10 year real yield today`
 
 Decision use:
@@ -107,6 +151,22 @@ Use for BTC/ETH/SOL futures decisions.
 - `crypto fear greed index API latest`
 - `BTC MVRV NUPL SOPR latest`
 
+### Crypto Infrastructure / Regulatory Incidents
+
+Use when there are exchange outages, chain halts, stablecoin depegs, ETF issuer updates, hacks, SEC/CFTC action, or major wallet/exchange-flow rumors.
+
+- `{exchange} status incident withdrawals deposits today`
+- `{chain} status halt outage today`
+- `Tether USDT Circle USDC announcement depeg reserves today`
+- `SEC CFTC crypto enforcement ETF issuer announcement today`
+- `{asset} exploit hack bridge incident today`
+
+Decision use:
+
+- Primary route beats social media. If only social media reports exist, mark as rumor risk.
+- Exchange/chain outage can override normal technical signals through liquidity and liquidation risk.
+- Stablecoin depeg or withdrawal stress is an all-direction hard-block risk until confirmed or resolved.
+
 Decision use:
 
 - BTC is the direction anchor.
@@ -118,15 +178,21 @@ Decision use:
 Use targeted queries:
 
 - `Reuters Bitcoin oil Iran FOMC today`
-- `FOMC June 2026 dot plot Powell press conference`
-- `BTC ETF flows Farside June 2026`
+- `Reuters Bitcoin oil {geopolitical_event} FOMC today`
+- `FOMC {current_month_year} dot plot Powell press conference`
+- `BTC ETF flows Farside {current_date_or_month}`
+- `ETH ETF flows Farside {current_date_or_month}` when ETH is traded or cited
 - `CPI PPI PCE release date official`
 - `{asset} token unlock date source Tokenomist DefiLlama` only when user asks for that asset.
 
-## Source Priority
+## Source Priority By Data Type
 
-1. Official source / exchange API.
-2. Reputable market data.
-3. Professional aggregator.
-4. Reuters/AP/Bloomberg style news.
-5. Social media only as sentiment, never as confirmed fact.
+- Price, mark, index, funding, OI, candles, order book: exchange API first; OKX default, Binance/Bybit fallback.
+- All-market funding/OI/long-short/liquidation: CoinGlass / Coinalyze / Velo / Laevitas; exchange-native data is local evidence only.
+- Options: Deribit raw API first for BTC/ETH, then Laevitas / Amberdata / CoinGlass options.
+- ETF flows: Farside, issuer official data, or Bloomberg-like market data; label preliminary/final/stale.
+- Macro actuals: official BLS, BEA, Fed, Treasury, Cboe, FRED.
+- Macro consensus: Trading Economics, Econoday, Investing, Bloomberg-like sources; label as non-official consensus.
+- News: official statement > Reuters/AP/Bloomberg > CNBC/WSJ/FT > social media. Geopolitics needs at least two reputable sources.
+- On-chain/cycle: Glassnode, CryptoQuant, IntoTheBlock, LookIntoBitcoin; mark frequency and lag, and do not use as primary 15m/1h entry reason.
+- Social media/CT/Telegram: sentiment and rumor only, never confirmed fact.
