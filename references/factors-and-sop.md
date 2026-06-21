@@ -143,6 +143,94 @@ Every actionable call must answer:
    - If bad news no longer makes new lows, do not add fresh short score from that news.
    - If good news no longer makes new highs, do not add fresh long score from that news.
 
+### 6C. Root-Cause Chain Method
+
+Every decision-changing catalyst must be traced beyond the headline. Do not stop at `ETF inflow`, `ETF outflow`, `ceasefire`, `oil risk`, `extreme fear`, `liquidation`, `Fed hawkish`, or `Fed dovish`. These are intermediate observations, not root causes.
+
+Use this ladder:
+
+```text
+observable fact -> prior expectation / positioning -> immediate cause -> deeper driver -> market transmission -> confirmation trigger -> trade implication
+```
+
+Definitions:
+
+- Observable fact: verified live data or confirmed news.
+- Prior expectation / positioning: what consensus, options, funding, OI, ETF flow, price trend, or cross-asset market had already priced.
+- Immediate cause: the direct reason the market is moving now.
+- Deeper driver: the durable force behind the immediate cause.
+- Market transmission: how that driver reaches BTC/ETH/SOL.
+- Confirmation trigger: what must appear in price, rates, DXY, VIX, ETF/stablecoin flow, funding/OI, or order book before trading it.
+- Trade implication: main action, trigger, invalidation, and probability change.
+
+Durable root drivers:
+
+- USD liquidity and policy path: Fed expectations, OIS/SOFR, QT/QE, Treasury issuance, TGA, RRP, reserves.
+- Real yields and dollar: 2Y/10Y, real yield, DXY, USDCNH, global dollar funding.
+- Risk appetite and volatility: VIX, MOVE, credit spreads, QQQ/NQ/ES, market breadth.
+- Balance-sheet and stablecoin liquidity: stablecoin supply, exchange reserves, ETF primary-market creations/redemptions, dealer inventory.
+- Forced positioning: funding, OI, liquidation clusters, basis, options gamma/skew/max pain, crowded long/short ratios.
+- Supply and issuance: miner/treasury selling, unlocks for named non-core assets, exchange inflow, staking/unstaking, protocol supply changes.
+- Venue and regulatory risk: exchange outages, withdrawal stress, ETF/regulatory actions, stablecoin issuer announcements.
+- Geopolitical energy shock: oil, shipping chokepoints, inflation expectations, safe-haven dollar demand, risk-premium compression or expansion.
+- Crypto-native adoption/security: ETF demand, chain activity, fees, TVL, bridge/security incidents, network outages.
+
+Common causal chains:
+
+- ETF inflow:
+  `risk budget improves or allocation demand rises -> advisors/institutions create ETF shares -> APs/market makers source spot or futures hedge -> BTC spot absorption improves -> BTC structure firms -> ETH/SOL beta can follow only if relative strength confirms`.
+  Confirmation: Farside total net inflow, issuer/official data, Coinbase premium or spot CVD, ETF volume vs average, BTC reclaim/hold levels, funding not euphoric.
+
+- ETF outflow:
+  `rates/real yields or risk stress raise hurdle rate -> allocators redeem or rebalance -> APs/market makers reduce exposure -> spot sell pressure or hedge unwind -> BTC rallies fail -> ETH/SOL underperform if beta appetite fades`.
+  Confirmation: total net outflow, not just one fund; DXY/yields/VIX reaction; BTC failure at repair level; spot volume on sell moves; derivatives not already fully deleveraged.
+
+- Stablecoin expansion:
+  `dollar liquidity or offshore crypto demand improves -> USDT/USDC supply or exchange stablecoin balances rise -> market makers and spot buyers have more dry powder -> dips get absorbed`.
+  Confirmation: stablecoin supply, exchange reserve/netflow, spot bid depth, lower slippage, rising spot share of volume.
+
+- Stablecoin contraction:
+  `risk reduction, redemption demand, regulation, or high T-bill opportunity cost drains stablecoins -> exchange buying power shrinks -> rallies lack follow-through`.
+  Confirmation: supply decline, exchange reserve drop, thinner order books, lower spot volume, failed breakouts.
+
+- Fed hawkish repricing:
+  `inflation/growth data or Fed guidance pushes rate path higher -> real yields/DXY rise -> risk-asset discount rate rises and dollar liquidity tightens -> BTC multiple compresses -> ETH/SOL beta sells harder`.
+  Confirmation: FedWatch/OIS shift, 2Y/10Y/real yield up, DXY up, QQQ/VIX response, BTC failing to reclaim structure.
+
+- Fed dovish repricing:
+  `inflation cools without recession stress or Fed guidance lowers path -> yields/DXY fall -> liquidity/risk appetite improves -> BTC demand improves -> ETH/SOL can outperform if funding is not crowded`.
+  Confirmation: actual vs consensus, yields/DXY down, VIX down, QQQ/NQ strength, ETF/stablecoin/spot flow support.
+
+- Recession-style cut expectations:
+  `growth deteriorates or credit stress rises -> cuts are priced because risk is worsening -> VIX/credit stress rise and liquidity preference increases -> crypto can fall despite higher cut odds`.
+  Confirmation: VIX/MOVE/credit up, equities weak, yields down for bad reasons, ETF outflows or stablecoin risk-off.
+
+- Geopolitical escalation:
+  `conflict raises energy/shipping risk -> oil and inflation expectations rise or safe-haven dollar demand rises -> yields/DXY/VIX pressure risk assets -> crypto sells if liquidity shock dominates`.
+  Confirmation: oil spike, DXY/VIX up, yields reaction, equity weakness, BTC/ETH not absorbing.
+
+- Geopolitical relief:
+  `risk premium compresses -> oil/inflation pressure fades -> yields/DXY/VIX may fall -> risk assets repair -> crypto follows only if spot flow and BTC structure confirm`.
+  Confirmation: oil down, VIX down, yields/DXY not rising, QQQ/NQ risk-on, BTC reclaim, ETF/stablecoin support.
+
+- Extreme fear:
+  `recent forced selling and negative sentiment reduce marginal sellers or trap shorts -> bounce/squeeze probability rises`; but also
+  `ongoing redemptions, rising OI into decline, or thin liquidity can mean forced selling continues`.
+  Confirmation for bounce: bad news no longer makes new lows, funding flat/negative, OI falling or shorts crowded, liquidation clusters above, spot bid absorption.
+  Confirmation for cascade: price down with OI rising, funding still positive, exchange inflows, thin book, support break.
+
+- Liquidation cascade:
+  `leveraged longs/shorts cluster near obvious levels -> price sweeps stops/liquidations -> forced market orders accelerate move -> overshoot occurs until OI/funding normalize or spot absorbs`.
+  Confirmation: liquidation heatmap clusters, OI/funding behavior, mark/index dislocation, order-book gaps, fast taker imbalance.
+
+Root-cause output rule:
+
+- For actionable calls, include only the top 1-2 root-cause chains ranked by decision impact, plus one compact opposite chain if material.
+- Each chain must end with a practical trigger or invalidation.
+- Do not add score for a chain unless the confirmation evidence is fresh enough for the trade horizon.
+- If a catalyst is plausible but unconfirmed, put it in scenario risk and do not use it as the main reason.
+- If the move is mostly microstructure/noise and no reliable deeper chain is confirmed, say so; do not invent a coherent macro story.
+
 ### 7. Asset-Specific Events
 
 Track:
@@ -163,21 +251,22 @@ Interpretation:
 1. State current user position.
 2. Pull live exchange data for BTC/ETH/SOL, plus user-held instrument.
 3. Pull macro, consensus expectations, FedWatch/rate path, and breaking-event data.
-4. Read active event pool and active decision context only.
+4. Read active event pool only; do not read historical trade-decision logs for live direction.
 5. Classify regime: risk-on, risk-off, event-compressed, or surprise repricing.
 6. Confirm the fact gate:
    - If required facts are fresh, continue.
    - If required facts are unavailable/stale/conflicting, mark them and apply the confidence cap before any scoring.
    - Do not let technical indicators, EV/R, ATR, or outside frameworks fill missing facts.
-7. Score BTC first, then ETH/SOL or user-held asset.
-8. Run the primary signal vote: BTC structure, macro bridge, derivatives.
-9. Compare asset strength:
+7. Build root-cause chains for the top bullish and bearish catalysts.
+8. Score BTC first, then ETH/SOL or user-held asset.
+9. Run the primary signal vote: BTC structure, macro bridge, derivatives.
+10. Compare asset strength:
    - BTC vs ETH/SOL.
    - ETH/BTC and SOL/BTC.
    - User-requested non-core asset vs BTC/ETH/SOL only when needed.
-10. Audit priced-in/crowding and run why-not-opposite.
-11. Apply the decision priority order, including decision ladder, hard-block/soft-downgrade rules, event matrix, EV/R gate, and existing-position rules.
-12. Decide exactly one action:
+11. Audit priced-in/crowding and run why-not-opposite.
+12. Apply the decision priority order, including decision ladder, hard-block/soft-downgrade rules, event matrix, EV/R gate, and existing-position rules.
+13. Decide exactly one action:
    - Open long.
    - Open short.
    - Hold existing long.
@@ -189,8 +278,8 @@ Interpretation:
    - Trigger long.
    - Trigger short.
    - No trade with explicit long and short triggers.
-13. Give entry/trigger, stop, T1/T2, invalidation event, do-not-hold-through event, and next review time.
-14. Append to decision pool only for actionable trade calls, explicit log updates, or state-changing decisions.
+14. Give entry/trigger, stop, T1/T2, invalidation event, do-not-hold-through event, and next review time.
+15. If a new event matters, update the event pool; do not append trade decisions to a local decision pool.
 
 ## Hard Decision Heuristics
 
@@ -214,6 +303,7 @@ For a proposed long, answer:
 
 - Why not short here?
 - What bearish evidence is strongest?
+- What is the bearish root-cause chain?
 - Why is that evidence not enough to override the long?
 - What exact price/event would prove the short thesis is taking control?
 
@@ -221,6 +311,7 @@ For a proposed short, answer:
 
 - Why not long here?
 - What bullish evidence is strongest?
+- What is the bullish root-cause chain?
 - Why is that evidence not enough to override the short?
 - What exact price/event would prove the long thesis is taking control?
 

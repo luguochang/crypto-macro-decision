@@ -50,6 +50,25 @@ Fallback exchange/API ladder:
 - Fallback 4: CoinGlass / Coinalyze / Velo / Laevitas for all-market funding, OI, long/short, liquidation heatmaps, and options. If no API access, use webpage/search-derived values and mark them as delayed.
 - Spot sanity check only: Coinbase, Kraken, CoinGecko, CoinMarketCap. These do not replace derivatives data.
 
+If exchange APIs fail, do not stop at `unavailable`. Run the web fallback sweep below and report which derivative facts were recovered:
+
+- `CoinGlass {BTC|ETH|SOL} funding rate open interest long short liquidation`
+- `CoinGlass currencies {BTC|ETH|SOL} open interest volume liquidated funding`
+- `Coinalyze {BTC|ETH|SOL} open interest funding liquidation`
+- `Velo Data {BTC|ETH|SOL} funding open interest`
+- `Laevitas {BTC|ETH} options max pain skew IV open interest`
+- `Decentrader FOILS Bitcoin funding open interest long short`
+- `CoinGlass crypto market liquidation heatmap BTC ETH`
+
+Classify recovered values as:
+
+- `exchange-native`: direct OKX/Binance/Bybit/Deribit API.
+- `aggregator-api`: direct aggregator API/export.
+- `web-derived`: visible webpage/snippet value from CoinGlass/Coinalyze/Velo/Laevitas/Decentrader.
+- `search-derived`: search result snippet only.
+
+Search-derived data can reduce uncertainty but cannot remove the confidence cap for precise futures execution. If mark/index/order book are still missing, no high-confidence market entry.
+
 If CoinGlass, Coinalyze, Velo, or Laevitas are inaccessible, exchange-native funding/OI is local evidence only. Do not label derivatives confirmation as strong unless at least one non-exchange crowding, liquidation, long/short, taker-flow, or basis source is fresh.
 
 Flows and derivatives:
@@ -146,6 +165,11 @@ Use for BTC/ETH/SOL futures decisions.
 - `BTC ETF flows Farside latest`
 - `Bitcoin Ethereum Solana funding open interest liquidation heatmap today`
 - `BTC ETH SOL long short ratio CoinGlass today`
+- `CoinGlass currencies BTC ETH SOL open interest funding liquidated 24h`
+- `CoinGlass liquidation heatmap Bitcoin Ethereum Solana today`
+- `Coinalyze BTC ETH SOL open interest funding rate today`
+- `Velo BTC ETH SOL funding open interest today`
+- `Decentrader FOILS Bitcoin futures open interest long short ratio`
 - `Deribit BTC ETH options expiry max pain current week`
 - `stablecoin supply crypto market DefiLlama latest`
 - `crypto fear greed index API latest`

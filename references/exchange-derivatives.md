@@ -18,6 +18,15 @@ Minimum tradable data pack for any leveraged call:
 
 If 2+ items in the minimum pack are unavailable or stale, default to `no trade`, `trigger long`, or `trigger short`; do not assign 60%+ directional confidence.
 
+Before marking any derivatives bucket unavailable, exhaust the fallback ladder:
+
+1. OKX/Binance/Bybit exchange APIs.
+2. Deribit for BTC/ETH options.
+3. CoinGlass / Coinalyze / Velo / Laevitas / Decentrader webpages or search snippets for funding, OI, long/short, liquidation heatmaps, options, and basis.
+4. Market-data/web quote pages only for spot sanity checks.
+
+If the fallback is webpage-derived or search-derived, state that explicitly. Web fallback can recover directional crowding context, but it does not fully replace fresh mark/index/order book for liquidation-sensitive entries.
+
 Single-item hard caps:
 
 - If last/mark/index is unavailable or stale, cap below 60% even if other facts align.
@@ -148,3 +157,12 @@ Use these if OKX fails, rate-limits, returns stale timestamps, or conflicts with
 - Coinbase/Kraken/CoinGecko/CoinMarketCap: spot price sanity checks only; do not use them as substitutes for derivatives data.
 
 Mark each fallback result with source, timestamp, and whether it is exchange-native, aggregator, webpage-derived, or search-derived.
+
+Required fallback search terms when APIs fail:
+
+- `CoinGlass {asset} funding rate open interest long short liquidation`
+- `CoinGlass currencies {asset} open interest 24h liquidated funding`
+- `Coinalyze {asset} open interest funding liquidation`
+- `Velo Data {asset} funding open interest`
+- `Laevitas BTC ETH options max pain skew IV open interest`
+- `Decentrader FOILS Bitcoin open interest long short ratio`

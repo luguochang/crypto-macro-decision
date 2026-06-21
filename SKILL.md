@@ -1,6 +1,6 @@
 ---
 name: crypto-macro-decision
-description: Use when the user asks for BTC/ETH/SOL crypto macro analysis, futures long/short decisions, event-driven crypto trading workflows, exchange derivatives data, event-pool updates, decision logs, or objective highest-probability crypto operation workflows.
+description: Use when the user asks for BTC/ETH/SOL crypto macro analysis, futures long/short decisions, event-driven crypto trading workflows, exchange derivatives data, event-pool updates, or objective highest-probability crypto operation workflows.
 ---
 
 # Crypto Macro Decision
@@ -11,17 +11,19 @@ Use this skill to produce objective, event-aware futures decisions for major cry
 
 Act as a macro-aware crypto futures trader: separate facts, inference, and execution; rebuild the current view from live facts; then choose the highest expected-value action that can be invalidated. Do not write market commentary when the user asks for an operation.
 
+Always explain causality before conviction. A catalyst label such as ETF inflow, ETF outflow, ceasefire, oil risk, extreme fear, liquidation, or Fed repricing is not enough. Convert it into a root-cause chain: why the catalyst would happen, what transmission channel moves BTC/ETH/SOL, what confirmation would arrive first, what invalidates it, and what probability it adds or removes.
+
 ## Required References
 
 Load only what is needed. Keep `SKILL.md` lean; references are conditional.
 
 - `references/event-pool.md`: read active/current events before every live market decision; read only the active table and unresolved reactions unless reviewing history.
-- `references/decision-pool.md`: read only `Current Decision State`, `Active Position Context`, and the latest 1-3 entries unless reviewing history.
+- `references/lessons.md`: optional low-weight memory for durable error patterns; never use it as current market evidence.
 - `references/factors-and-sop.md`: read for the macro/crypto checklist, consensus expectations, and decision scoring.
 - `references/indicator-sweep.md`: read for the concise pre-trade indicator sweep to avoid missing major signals.
 - `references/exchange-derivatives.md`: read for funding, OI, liquidation, order book, long/short crowding.
 - `references/data-sources.md`: read for APIs, source priority, and web-search query routes.
-- `references/templates.md`: read when appending event or decision records.
+- `references/templates.md`: read for live answer and event record formats.
 
 If the user provides an existing local research log path, use it as supplemental history, not as current market truth. Do not rely on hard-coded personal paths.
 
@@ -30,10 +32,13 @@ If the user provides an existing local research log path, use it as supplemental
 For live decisions, read only:
 
 - active event window plus unresolved active market reactions;
-- active position context plus current decision state and latest 1-3 decisions;
-- deeper history only for explicit review, postmortem, or named analogs.
+- the latest user-stated position and current live facts;
+- durable lessons only if they help avoid repeated process errors;
+- archived external research only if the user explicitly provides it for review, postmortem, or named analogs.
 
-Historical pools are memory, not market data. Use them to recover user preference, prior position, and unresolved hypotheses only. Never treat old prices, targets, stops, probabilities, ETF flows, FedWatch odds, funding, OI, VIX, DXY, yields, or news status as current facts. Refresh them.
+Lessons are process memory, not market data. Use them only to avoid repeated process errors. Never treat old prices, targets, stops, probabilities, ETF flows, FedWatch odds, funding, OI, VIX, DXY, yields, or news status as current facts. Refresh them.
+
+There is no decision pool in this skill. Do not read or maintain historical trade-decision logs as input to a live decision. If the user wants a review, use only user-provided records or fresh facts and clearly separate history from current evidence.
 
 Recurring monthly events should be maintained as calendar rules and expanded only when they enter the active decision window.
 
@@ -67,6 +72,7 @@ Do not put slashes, conditional clauses, or combined operations in `Main action`
    - For leveraged trade calls, the minimum fact pack from `exchange-derivatives.md` is mandatory. Missing critical items must be listed before any score, probability, or action.
    - Crypto prices: exchange APIs for last/mark/index, 1H/4H candles, and order book. Do not use spot web quotes as substitutes for futures mark/index when liquidation or contract execution is discussed.
    - Derivatives: funding, OI and OI change, long/short, taker delta/CVD, liquidation clusters, basis/perp premium, options IV/skew/OI when relevant.
+   - If OKX/Binance/Bybit/Deribit APIs fail, continue with web-search fallbacks before marking data unavailable: CoinGlass/CoinGlass currency pages, funding pages, liquidation pages/heatmaps, Coinalyze, Velo, Laevitas, Decentrader FOILS, Farside, DefiLlama, Alternative.me, and reputable market/news pages. Label these as `web-derived` or `search-derived`, include source/time, and keep the confidence cap if mark/index/order book or exact long-short/liquidation clusters remain missing.
    - Options are relevant within 24-48h of major weekly/monthly/quarterly expiry, when Deribit OI/skew/IV shifts sharply, or when max-pain/gamma zones sit near current price.
    - Flows: ETF total flows, stablecoin supply, spot volume, exchange inflow/outflow when available.
    - Macro: VIX, U.S. yields, real yields, DXY, oil, FedWatch/OIS, CPI/PPI/PCE/NFP consensus and actuals, FOMC calendar.
@@ -75,19 +81,29 @@ Do not put slashes, conditional clauses, or combined operations in `Main action`
    - Apply freshness and confidence-cap rules when critical live data is missing, stale, or conflicting.
    - Do not enter the technical/quant guardrail layer until the required fact layer is complete or explicitly marked unavailable/stale with a confidence cap. Formulas, indicators, and outside frameworks cannot replace missing live facts.
 
-3. **Classify the market regime.**
+3. **Build compact root-cause chains for decision-changing catalysts.**
+   - Build chains for candidate catalysts internally, but in a live answer show only the 1-2 chains that most affect the main action plus the strongest opposite chain.
+   - Write each chain as: `observable fact -> prior expectation/positioning -> immediate cause -> deeper driver -> market transmission -> confirmation trigger -> trade implication`.
+   - Continue the chain until it reaches a durable root driver: USD liquidity/rates, real yields, risk appetite/volatility, balance-sheet/stablecoin liquidity, forced positioning/liquidations, supply/unlocks/issuance, regulatory/venue/system risk, geopolitical energy/supply shock, or crypto-specific adoption/security.
+   - Do not stop at shallow labels. `ETF inflow` must explain why allocators would buy or redeem now; `geopolitical relief` must explain why oil, inflation expectations, yields, DXY, VIX, and risk assets would transmit into crypto; `extreme fear` must explain whether it indicates exhaustion, trapped shorts, or continuing forced selling.
+   - For each chain, estimate `trigger probability`, `directional impact if triggered`, and `evidence needed before trading it`. Label probabilities subjective unless backtested.
+   - Separate `known fact`, `inference`, and `scenario`. Rumors and social narratives can enter only as low-confidence scenario risks.
+   - If evidence is too weak to support a chain, say `unconfirmed scenario` and do not score it as a directional reason. Do not manufacture a clean macro story for noisy or incomplete moves.
+   - Do not encode a permanent bullish or bearish bias from any recent win, loss, stop, or user opinion. The chain is a method for analysis, not a durable market conclusion.
+
+4. **Classify the market regime.**
    - Risk-on repair: VIX down, yields/real yields down, oil down, ETF/stablecoin flows improving, BTC reclaiming levels.
    - Risk-off pressure: VIX up, real yields up, DXY up, oil/geopolitical stress up, ETF outflows, BTC breaking structure.
    - Event compression: major FOMC/CPI/PPI/PCE/NFP/options expiry within 24-48h; reduce confidence and emphasize invalidation.
    - Surprise repricing: actual data or breaking news differs from consensus, moving rates/oil/DXY/VIX.
    - Use technical/quant tools only as guardrails after regime classification: EV/R, ATR/volatility sizing, percentile anomaly checks, and trigger quality. They are not primary direction sources.
 
-4. **Rank assets by trade quality.**
+5. **Rank assets by trade quality.**
    - BTC is the direction anchor.
    - ETH and SOL are higher-beta majors; trade them only when they show relative strength and derivatives are not crowded.
    - Non-core tokens/products are excluded by default and analyzed only if explicitly requested.
 
-5. **Produce one main action.**
+6. **Produce one main action.**
    - Choose exactly one primary operation: `open long`, `open short`, `hold long`, `hold short`, `close long`, `close short`, `flip long to short`, `flip short to long`, `trigger long`, `trigger short`, or `no trade`.
    - Give the highest-probability action first, then explain why alternatives lose.
    - Include subjective probability and explicitly label it as non-backtested unless a historical sample exists.
@@ -97,17 +113,16 @@ Do not put slashes, conditional clauses, or combined operations in `Main action`
    - If a hard block prevents calculating price triggers, `no trade` must still name the missing facts under `Trigger long` and `Trigger short`, such as `unavailable until mark/index and OI refresh`.
    - Event compression can reduce size/confidence or block holding through the event; it cannot replace the main action.
 
-6. **Run adversarial review.**
+7. **Run adversarial review.**
    - If the user explicitly asks for multi-agent / 多 Agent / 对抗审查 and subagent tools are available, spawn independent bull, bear, data-quality/crowding, and execution-risk reviewers before finalizing.
    - Otherwise perform the same four-role review internally.
-   - The final answer must include `Why not the opposite` and any confidence cap from missing/stale/conflicting data.
+   - The final answer must include `Why not the opposite`, the strongest opposing root-cause chain, and any confidence cap from missing/stale/conflicting data.
 
-7. **Append state when appropriate.**
-   - Append only for actionable trade calls, explicit log updates, or state-changing decisions.
-   - Decision entries must use the canonical action enum. Legacy history may contain non-canonical wording; do not copy its `Main action` format.
-   - After appending a state-changing decision, update `Current Decision State`; keep only the active state plus latest 1-3 decisions in the default read path, archiving older material when maintenance is requested.
-   - If a new event matters, append to `references/event-pool.md`.
-   - Use `references/templates.md` formats.
+8. **Update event context only when appropriate.**
+   - Do not append trade decisions to a local decision pool; this skill intentionally has no decision pool.
+   - If a new macro, geopolitical, exchange, ETF, stablecoin, options, or crypto-native event matters, append it to `references/event-pool.md`.
+   - Extract only durable process lessons into `references/lessons.md`; do not store raw trade calls or historical positions as default decision input.
+   - Use `references/templates.md` event format when maintaining the event pool.
 
 ## Output Format for Trade Calls
 
@@ -147,4 +162,4 @@ Banned as final actions unless immediately converted into the template above:
 
 ## Useful Scripts
 
-Run scripts with `python3`: `scripts/okx_snapshot.py`, `scripts/append_decision.py`, and `scripts/append_event.py`.
+Run scripts with `python3`: `scripts/okx_snapshot.py` and `scripts/append_event.py`.
